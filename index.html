@@ -30,6 +30,11 @@
       color: #374151;
     }
     label:first-child { margin-top: 0; }
+    .hint {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
     .row-inline {
       display: flex;
       gap: 8px;
@@ -57,7 +62,7 @@
       box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
     }
     textarea.output {
-      height: 390px;
+      height: 430px;
       background: #f9fafb;
       white-space: pre-wrap;
       line-height: 1.45;
@@ -90,7 +95,7 @@
     .status { font-size: 14px; font-weight: 600; color: #15803d; }
     @media (max-width: 720px) {
       .grid { grid-template-columns: 1fr; }
-      textarea.output { height: 340px; }
+      textarea.output { height: 360px; }
       .actions button { width: 100%; }
       .actions { flex-direction: column; align-items: stretch; }
       .status { text-align: center; }
@@ -119,11 +124,15 @@
       <label>Debit (Rp)</label>
       <input id="debit" type="number" inputmode="numeric" value="" oninput="generate()" />
 
-      <label>Pengeluaran (Rp)</label>
-      <input id="pengeluaran" type="number" inputmode="numeric" value="" oninput="generate()" />
+      <label>Pengeluaran (Otomatis dari Catatan Pengeluaran)</label>
+      <input id="pengeluaran" type="text" readonly />
+
+      <label>Catatan Pengeluaran (satu item per baris + nominal)</label>
+      <div class="hint">Contoh: Es batu 10000 atau Cup 15.000</div>
+      <textarea id="catatanPengeluaran" rows="3" oninput="generate()"></textarea>
 
       <label>Tunai di Kasir (Otomatis: Tunai - Pengeluaran)</label>
-      <input id="tunaiKasirPreview" type="text" readonly />
+      <input id="tunaiKasir" type="text" readonly />
 
       <label>Catatan Tunai (opsional)</label>
       <input id="catatanTunai" type="text" value="(uang kemarin)" oninput="generate()" />
@@ -168,25 +177,52 @@ Freshmilk Greenfields sisa 1</textarea>
       generate();
     }
 
+    function parsePengeluaran(rawText) {
+      const lines = rawText
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      let total = 0;
+      const formattedLines = lines.map(line => {
+        // Cari angka nominal (mendukung pemisah titik/koma ribuan seperti 15.000 atau 15000)
+        const matches = line.match(/(?:\d{1,3}(?:[.,]\d{3})+|\d+)/g);
+        if (matches && matches.length > 0) {
+          const lastMatch = matches[matches.length - 1];
+          const cleanNumber = Number(lastMatch.replace(/[.,]/g, ""));
+          if (!Number.isNaN(cleanNumber)) {
+            total += cleanNumber;
+          }
+        }
+        return line.startsWith("•") ? line : `• ${line}`;
+      });
+
+      return {
+        total,
+        textList: formattedLines.join("\n")
+      };
+    }
+
     function generate() {
       const tanggal = document.getElementById("tanggal").value.trim();
       const numTunai = Number(document.getElementById("tunaiJual").value || 0);
       const numQris = Number(document.getElementById("qris").value || 0);
       const numDebit = Number(document.getElementById("debit").value || 0);
-      const numPengeluaran = Number(document.getElementById("pengeluaran").value || 0);
 
-      const totalNum = numTunai + numQris + numDebit;
-      const totalPenjualan = rp(totalNum);
+      const totalPenjualan = rp(numTunai + numQris + numDebit);
       document.getElementById("totalPenjualan").value = totalPenjualan;
 
-      const tunaiKasirNum = numTunai - numPengeluaran;
+      const parsedExp = parsePengeluaran(document.getElementById("catatanPengeluaran").value);
+      const pengeluaran = rp(parsedExp.total);
+      document.getElementById("pengeluaran").value = pengeluaran;
+
+      const tunaiKasirNum = numTunai - parsedExp.total;
       const tunaiKasir = rp(tunaiKasirNum);
-      document.getElementById("tunaiKasirPreview").value = tunaiKasir;
+      document.getElementById("tunaiKasir").value = tunaiKasir;
 
       const tunaiJual = rp(numTunai);
       const qris = rp(numQris);
       const debit = rp(numDebit);
-      const pengeluaran = rp(numPengeluaran);
       const catatanTunai = document.getElementById("catatanTunai").value.trim();
       const transfer = rp(document.getElementById("transfer").value);
       const uangKasir = rp(document.getElementById("uangKasir").value);
@@ -197,6 +233,10 @@ Freshmilk Greenfields sisa 1</textarea>
         .filter(Boolean)
         .map(line => line.startsWith("•") ? line : `• ${line}`)
         .join("\n");
+
+      const pengeluaranSection = parsedExp.textList
+        ? `Pengeluaran: ${pengeluaran}\n${parsedExp.textList}`
+        : `Pengeluaran: ${pengeluaran}`;
 
       const text =
 `${tanggal}
@@ -210,7 +250,7 @@ ${qris}
 Debit:
 ${debit}
 
-Pengeluaran: ${pengeluaran}
+${pengeluaranSection}
 
 Tunai:
 ${tunaiKasir}${catatanTunai}
@@ -248,8 +288,9 @@ ${uangKasir}`;
     }
 
     function resetForm() {
-      ["tunaiJual", "qris", "debit", "pengeluaran", "transfer", "uangKasir"]
+      ["tunaiJual", "qris", "debit", "transfer", "uangKasir"]
         .forEach(id => document.getElementById(id).value = "");
+      document.getElementById("catatanPengeluaran").value = "";
       document.getElementById("catatanTunai").value = "";
       document.getElementById("stockOpname").value = "";
       generate();
