@@ -134,9 +134,6 @@
       <label>Tunai di Kasir (Otomatis: Tunai - Pengeluaran)</label>
       <input id="tunaiKasir" type="text" readonly />
 
-      <label>Catatan Tunai (opsional)</label>
-      <input id="catatanTunai" type="text" value="(uang kemarin)" oninput="generate()" />
-
       <label>Stock Opname (satu item per baris)</label>
       <textarea id="stockOpname" rows="3" oninput="generate()">Cookies habis
 Freshmilk Greenfields sisa 1</textarea>
@@ -144,8 +141,8 @@ Freshmilk Greenfields sisa 1</textarea>
       <label>Uang di Transfer (Rp)</label>
       <input id="transfer" type="number" inputmode="numeric" value="0" oninput="generate()" />
 
-      <label>Uang di Kasir (Rp)</label>
-      <input id="uangKasir" type="number" inputmode="numeric" value="0" oninput="generate()" />
+      <label>Uang di Kasir (Otomatis: Tunai di Kasir - Uang di Transfer)</label>
+      <input id="uangKasir" type="text" readonly />
     </div>
 
     <div class="card">
@@ -185,7 +182,6 @@ Freshmilk Greenfields sisa 1</textarea>
 
       let total = 0;
       const formattedLines = lines.map(line => {
-        // Cari angka nominal (mendukung pemisah titik/koma ribuan seperti 15.000 atau 15000)
         const matches = line.match(/(?:\d{1,3}(?:[.,]\d{3})+|\d+)/g);
         if (matches && matches.length > 0) {
           const lastMatch = matches[matches.length - 1];
@@ -208,6 +204,7 @@ Freshmilk Greenfields sisa 1</textarea>
       const numTunai = Number(document.getElementById("tunaiJual").value || 0);
       const numQris = Number(document.getElementById("qris").value || 0);
       const numDebit = Number(document.getElementById("debit").value || 0);
+      const numTransfer = Number(document.getElementById("transfer").value || 0);
 
       const totalPenjualan = rp(numTunai + numQris + numDebit);
       document.getElementById("totalPenjualan").value = totalPenjualan;
@@ -220,12 +217,14 @@ Freshmilk Greenfields sisa 1</textarea>
       const tunaiKasir = rp(tunaiKasirNum);
       document.getElementById("tunaiKasir").value = tunaiKasir;
 
+      const uangKasirNum = tunaiKasirNum - numTransfer;
+      const uangKasir = rp(uangKasirNum);
+      document.getElementById("uangKasir").value = uangKasir;
+
       const tunaiJual = rp(numTunai);
       const qris = rp(numQris);
       const debit = rp(numDebit);
-      const catatanTunai = document.getElementById("catatanTunai").value.trim();
-      const transfer = rp(document.getElementById("transfer").value);
-      const uangKasir = rp(document.getElementById("uangKasir").value);
+      const transfer = rp(numTransfer);
 
       const rawOpname = document.getElementById("stockOpname").value
         .split("\n")
@@ -253,7 +252,7 @@ ${debit}
 ${pengeluaranSection}
 
 Tunai:
-${tunaiKasir}${catatanTunai}
+${tunaiKasir}
 
 Stock Opname:
 ${rawOpname || "-"}
@@ -288,10 +287,9 @@ ${uangKasir}`;
     }
 
     function resetForm() {
-      ["tunaiJual", "qris", "debit", "transfer", "uangKasir"]
+      ["tunaiJual", "qris", "debit", "transfer"]
         .forEach(id => document.getElementById(id).value = "");
       document.getElementById("catatanPengeluaran").value = "";
-      document.getElementById("catatanTunai").value = "";
       document.getElementById("stockOpname").value = "";
       generate();
     }
