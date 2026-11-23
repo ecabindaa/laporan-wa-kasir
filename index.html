@@ -237,6 +237,10 @@ Freshmilk Greenfields sisa 1</textarea>
         ? `Pengeluaran: ${pengeluaran}\n${parsedExp.textList}`
         : `Pengeluaran: ${pengeluaran}`;
 
+      const tunaiSetelahPengeluaranSection = parsedExp.total !== 0
+        ? `\n\nTunai sudah dikurangi pengeluaran:\n${tunaiKasir}`
+        : "";
+
       const text =
 `${tanggal}
 
@@ -249,10 +253,7 @@ ${qris}
 Debit:
 ${debit}
 
-${pengeluaranSection}
-
-Tunai Sudah DIkurangi Pengeluaran:
-${tunaiKasir}
+${pengeluaranSection}${tunaiSetelahPengeluaranSection}
 
 Stock Opname:
 ${rawOpname || "-"}
