@@ -122,8 +122,8 @@
       <label>Pengeluaran (Rp)</label>
       <input id="pengeluaran" type="number" inputmode="numeric" value="" oninput="generate()" />
 
-      <label>Tunai di Kasir (Rp)</label>
-      <input id="tunaiKasir" type="number" inputmode="numeric" value="" oninput="generate()" />
+      <label>Tunai di Kasir (Otomatis: Tunai - Pengeluaran)</label>
+      <input id="tunaiKasirPreview" type="text" readonly />
 
       <label>Catatan Tunai (opsional)</label>
       <input id="catatanTunai" type="text" value="(uang kemarin)" oninput="generate()" />
@@ -173,16 +173,20 @@ Freshmilk Greenfields sisa 1</textarea>
       const numTunai = Number(document.getElementById("tunaiJual").value || 0);
       const numQris = Number(document.getElementById("qris").value || 0);
       const numDebit = Number(document.getElementById("debit").value || 0);
+      const numPengeluaran = Number(document.getElementById("pengeluaran").value || 0);
 
       const totalNum = numTunai + numQris + numDebit;
       const totalPenjualan = rp(totalNum);
       document.getElementById("totalPenjualan").value = totalPenjualan;
 
+      const tunaiKasirNum = numTunai - numPengeluaran;
+      const tunaiKasir = rp(tunaiKasirNum);
+      document.getElementById("tunaiKasirPreview").value = tunaiKasir;
+
       const tunaiJual = rp(numTunai);
       const qris = rp(numQris);
       const debit = rp(numDebit);
-      const pengeluaran = rp(document.getElementById("pengeluaran").value);
-      const tunaiKasir = rp(document.getElementById("tunaiKasir").value);
+      const pengeluaran = rp(numPengeluaran);
       const catatanTunai = document.getElementById("catatanTunai").value.trim();
       const transfer = rp(document.getElementById("transfer").value);
       const uangKasir = rp(document.getElementById("uangKasir").value);
@@ -244,7 +248,7 @@ ${uangKasir}`;
     }
 
     function resetForm() {
-      ["tunaiJual", "qris", "debit", "pengeluaran", "tunaiKasir", "transfer", "uangKasir"]
+      ["tunaiJual", "qris", "debit", "pengeluaran", "transfer", "uangKasir"]
         .forEach(id => document.getElementById(id).value = "");
       document.getElementById("catatanTunai").value = "";
       document.getElementById("stockOpname").value = "";
