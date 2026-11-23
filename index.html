@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generator Laporan Harian WA</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      max-width: 860px;
+      margin: 16px auto;
+      padding: 0 14px 32px;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    h2 { margin: 8px 0 14px; font-size: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card {
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 12px;
+      color: #374151;
+    }
+    label:first-child { margin-top: 0; }
+    .row-inline {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .row-inline input { margin-top: 0; }
+    input, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 6px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fff;
+    }
+    input[readonly] {
+      background: #f3f4f6;
+      color: #111827;
+      font-weight: 600;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #16a34a;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+    }
+    textarea.output {
+      height: 390px;
+      background: #f9fafb;
+      white-space: pre-wrap;
+      line-height: 1.45;
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      background: #16a34a;
+      color: #fff;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    button:active { transform: scale(0.99); background: #15803d; }
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #1f2937;
+      white-space: nowrap;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+    .status { font-size: 14px; font-weight: 600; color: #15803d; }
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+      textarea.output { height: 340px; }
+      .actions button { width: 100%; }
+      .actions { flex-direction: column; align-items: stretch; }
+      .status { text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <h2>Generator Laporan Harian Grup WA</h2>
+  <div class="grid">
+    <div class="card">
+      <label>Tanggal Laporan</label>
+      <div class="row-inline">
+        <input id="tanggal" type="text" oninput="generate()" />
+        <button type="button" class="btn-secondary" onclick="setToday()">Hari Ini</button>
+      </div>
+
+      <label>Total Penjualan (Otomatis dari Tunai + QRIS + Debit)</label>
+      <input id="totalPenjualan" type="text" readonly />
+
+      <label>Tunai (Rp)</label>
+      <input id="tunaiJual" type="number" inputmode="numeric" value="0" oninput="generate()" />
+
+      <label>QRIS Mandiri (Rp)</label>
+      <input id="qris" type="number" inputmode="numeric" value="549000" oninput="generate()" />
+
+      <label>Debit (Rp)</label>
+      <input id="debit" type="number" inputmode="numeric" value="0" oninput="generate()" />
+
+      <label>Pengeluaran (Rp)</label>
+      <input id="pengeluaran" type="number" inputmode="numeric" value="0" oninput="generate()" />
+
+      <label>Tunai di Kasir (Rp)</label>
+      <input id="tunaiKasir" type="number" inputmode="numeric" value="13000" oninput="generate()" />
+
+      <label>Catatan Tunai (opsional)</label>
+      <input id="catatanTunai" type="text" value="(uang kemarin)" oninput="generate()" />
+
+      <label>Stock Opname (satu item per baris)</label>
+      <textarea id="stockOpname" rows="3" oninput="generate()">Cookies habis
+Freshmilk Greenfields sisa 1</textarea>
+
+      <label>Uang di Transfer (Rp)</label>
+      <input id="transfer" type="number" inputmode="numeric" value="0" oninput="generate()" />
+
+      <label>Uang di Kasir (Rp)</label>
+      <input id="uangKasir" type="number" inputmode="numeric" value="13000" oninput="generate()" />
+    </div>
+
+    <div class="card">
+      <label>Hasil Siap Copy</label>
+      <textarea id="hasil" class="output" readonly></textarea>
+      <div class="actions">
+        <button type="button" onclick="copyText()">Salin Teks ke Clipboard</button>
+        <button type="button" class="btn-secondary" onclick="resetForm()">Kosongkan Angka</button>
+        <span id="status" class="status"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function rp(val) {
+      const num = Number(val || 0);
+      return "Rp." + num.toLocaleString("id-ID");
+    }
+
+    function setToday() {
+      const now = new Date();
+      const formatted = now.toLocaleDateString("id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+      document.getElementById("tanggal").value = formatted;
+      generate();
+    }
+
+    function generate() {
+      const tanggal = document.getElementById("tanggal").value.trim();
+      const numTunai = Number(document.getElementById("tunaiJual").value || 0);
+      const numQris = Number(document.getElementById("qris").value || 0);
+      const numDebit = Number(document.getElementById("debit").value || 0);
+
+      const totalNum = numTunai + numQris + numDebit;
+      const totalPenjualan = rp(totalNum);
+      document.getElementById("totalPenjualan").value = totalPenjualan;
+
+      const tunaiJual = rp(numTunai);
+      const qris = rp(numQris);
+      const debit = rp(numDebit);
+      const pengeluaran = rp(document.getElementById("pengeluaran").value);
+      const tunaiKasir = rp(document.getElementById("tunaiKasir").value);
+      const catatanTunai = document.getElementById("catatanTunai").value.trim();
+      const transfer = rp(document.getElementById("transfer").value);
+      const uangKasir = rp(document.getElementById("uangKasir").value);
+
+      const rawOpname = document.getElementById("stockOpname").value
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => line.startsWith("•") ? line : `• ${line}`)
+        .join("\n");
+
+      const text =
+`${tanggal}
+
+Total penjualan:
+${totalPenjualan}
+Tunai:
+${tunaiJual}
+Qris Mandiri:
+${qris}
+Debit:
+${debit}
+
+Pengeluaran: ${pengeluaran}
+
+Tunai:
+${tunaiKasir}${catatanTunai}
+
+Stock Opname:
+${rawOpname || "-"}
+
+Uang di Transfer:
+${transfer}
+
+Uang di Kasir:
+${uangKasir}`;
+
+      document.getElementById("hasil").value = text;
+    }
+
+    async function copyText() {
+      const el = document.getElementById("hasil");
+      const status = document.getElementById("status");
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(el.value);
+        } else {
+          el.select();
+          el.setSelectionRange(0, el.value.length);
+          document.execCommand("copy");
+        }
+        status.textContent = "Tersalin!";
+      } catch (e) {
+        el.select();
+        el.setSelectionRange(0, el.value.length);
+        status.textContent = "Teks diblok, silakan tekan Salin.";
+      }
+      setTimeout(() => { status.textContent = ""; }, 2500);
+    }
+
+    function resetForm() {
+      ["tunaiJual", "qris", "debit", "pengeluaran", "tunaiKasir", "transfer", "uangKasir"]
+        .forEach(id => document.getElementById(id).value = "");
+      document.getElementById("catatanTunai").value = "";
+      document.getElementById("stockOpname").value = "";
+      generate();
+    }
+
+    setToday();
+  </script>
+</body>
+</html>
