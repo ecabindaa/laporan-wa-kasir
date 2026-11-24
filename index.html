@@ -131,7 +131,10 @@
       <div class="hint">Contoh: Es batu 10000 atau Cup 15.000</div>
       <textarea id="catatanPengeluaran" rows="3" oninput="generate()"></textarea>
 
-      <label>Tunai di Kasir (Otomatis: Tunai - Pengeluaran)</label>
+      <label>Uang Sisa Kemarin (Rp)</label>
+      <input id="sisaKemarin" type="number" inputmode="numeric" value="" oninput="generate()" />
+
+      <label>Tunai di Kasir (Otomatis: Tunai - Pengeluaran + Sisa Kemarin)</label>
       <input id="tunaiKasir" type="text" readonly />
 
       <label>Stock Opname (satu item per baris)</label>
@@ -204,6 +207,7 @@ Freshmilk Greenfields sisa 1</textarea>
       const numTunai = Number(document.getElementById("tunaiJual").value || 0);
       const numQris = Number(document.getElementById("qris").value || 0);
       const numDebit = Number(document.getElementById("debit").value || 0);
+      const numSisaKemarin = Number(document.getElementById("sisaKemarin").value || 0);
       const numTransfer = Number(document.getElementById("transfer").value || 0);
 
       const totalPenjualan = rp(numTunai + numQris + numDebit);
@@ -213,7 +217,7 @@ Freshmilk Greenfields sisa 1</textarea>
       const pengeluaran = rp(parsedExp.total);
       document.getElementById("pengeluaran").value = pengeluaran;
 
-      const tunaiKasirNum = numTunai - parsedExp.total;
+      const tunaiKasirNum = numTunai - parsedExp.total + numSisaKemarin;
       const tunaiKasir = rp(tunaiKasirNum);
       document.getElementById("tunaiKasir").value = tunaiKasir;
 
@@ -224,6 +228,7 @@ Freshmilk Greenfields sisa 1</textarea>
       const tunaiJual = rp(numTunai);
       const qris = rp(numQris);
       const debit = rp(numDebit);
+      const sisaKemarin = rp(numSisaKemarin);
       const transfer = rp(numTransfer);
 
       const rawOpname = document.getElementById("stockOpname").value
@@ -237,8 +242,12 @@ Freshmilk Greenfields sisa 1</textarea>
         ? `Pengeluaran: ${pengeluaran}\n${parsedExp.textList}`
         : `Pengeluaran: ${pengeluaran}`;
 
-      const tunaiSetelahPengeluaranSection = parsedExp.total !== 0
-        ? `\n\nTunai dikurangi pengeluaran:\n${tunaiKasir}`
+      const sisaKemarinSection = numSisaKemarin !== 0
+        ? `\n\nUang sisa kemarin:\n${sisaKemarin}`
+        : "";
+
+      const tunaiDiKasirSection = (parsedExp.total !== 0 || numSisaKemarin !== 0)
+        ? `\n\nTunai di kasir:\n${tunaiKasir}`
         : "";
 
       const text =
@@ -253,7 +262,7 @@ ${qris}
 Debit:
 ${debit}
 
-${pengeluaranSection}${tunaiSetelahPengeluaranSection}
+${pengeluaranSection}${sisaKemarinSection}${tunaiDiKasirSection}
 
 Stock Opname:
 ${rawOpname || "-"}
@@ -288,7 +297,7 @@ ${uangKasir}`;
     }
 
     function resetForm() {
-      ["tunaiJual", "qris", "debit", "transfer"]
+      ["tunaiJual", "qris", "debit", "sisaKemarin", "transfer"]
         .forEach(id => document.getElementById(id).value = "");
       document.getElementById("catatanPengeluaran").value = "";
       document.getElementById("stockOpname").value = "";
