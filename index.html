@@ -228,7 +228,6 @@ Freshmilk Greenfields sisa 1</textarea>
       const tunaiJual = rp(numTunai);
       const qris = rp(numQris);
       const debit = rp(numDebit);
-      const sisaKemarin = rp(numSisaKemarin);
       const transfer = rp(numTransfer);
 
       const rawOpname = document.getElementById("stockOpname").value
@@ -241,10 +240,6 @@ Freshmilk Greenfields sisa 1</textarea>
       const pengeluaranSection = parsedExp.textList
         ? `Pengeluaran: ${pengeluaran}\n${parsedExp.textList}`
         : `Pengeluaran: ${pengeluaran}`;
-
-      const sisaKemarinSection = numSisaKemarin !== 0
-        ? `\n\nUang sisa kemarin:\n${sisaKemarin}`
-        : "";
 
       const tunaiDiKasirSection = (parsedExp.total !== 0 || numSisaKemarin !== 0)
         ? `\n\nTunai di kasir:\n${tunaiKasir}`
@@ -262,7 +257,7 @@ ${qris}
 Debit:
 ${debit}
 
-${pengeluaranSection}${sisaKemarinSection}${tunaiDiKasirSection}
+${pengeluaranSection}${tunaiDiKasirSection}
 
 Stock Opname:
 ${rawOpname || "-"}
